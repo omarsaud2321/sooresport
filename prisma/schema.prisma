@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Game {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  nameAr     String
+  nameEn     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  teams      Team[]
+  tournaments Tournament[]
+  posts      Post[]
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  slug      String
+  name      String
+  logoUrl   String?
+  gameId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  roster    Player[]
+  posts     Post[]
+  @@unique([gameId, slug])
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  name      String
+  photoUrl  String?
+  role      String?
+  teamId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+enum TournamentTier {
+  CDL
+  CHALLENGERS
+  SAUDI_LEAGUE
+  OTHER
+}
+
+enum Region {
+  MENA
+  EU
+  NA
+  GLOBAL
+}
+
+model Tournament {
+  id        String   @id @default(cuid())
+  slug      String
+  name      String
+  tier      TournamentTier @default(OTHER)
+  region    Region @default(GLOBAL)
+  gameId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  posts     Post[]
+  @@unique([gameId, slug])
+}
+
+enum PostSection {
+  NEWS
+  TOURNAMENTS
+  TEAMS
+}
+
+enum Lang {
+  ar
+  en
+}
+
+model Post {
+  id           String    @id @default(cuid())
+  lang         Lang
+  title        String
+  excerpt      String?
+  content      String?
+  coverImage   String?
+  section      PostSection @default(NEWS)
+  publishedAt  DateTime   @default(now())
+
+  gameId       String
+  tournamentId String?
+  teamId       String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  game         Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  team         Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  // For future X integration:
+  tweetTextAr  String?
+  tweetTextEn  String?
+  status       String? // draft|published
+}
